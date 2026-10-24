@@ -4,7 +4,7 @@ import { useEffect, useRef, useState } from 'react';
 import { menus } from '../lib/menus';
 
 function localDate(date = new Date()) {
- return date.getFullYear() + '-' + String(date.getMonth() + 1).padStart(2, '0') + '-' + String(date.getDate()).padStart(2, '0');
+ return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Shanghai', year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
 }
 
 export default function PetCare() {
@@ -26,6 +26,7 @@ export default function PetCare() {
  function resetBooking() {
   formRef.current?.reset();
   formRef.current?.elements.date.setCustomValidity('');
+  formRef.current?.elements.time.setCustomValidity('');
   setResult('');
  }
  function openBooking(index) {
@@ -46,10 +47,16 @@ export default function PetCare() {
   if (form.elements.date.value < localDate()) {
    form.elements.date.setCustomValidity('请选择今天或之后的日期'); form.elements.date.reportValidity(); return;
   }
+  const arrival = new Date(form.elements.date.value + 'T' + form.elements.time.value + ':00+08:00');
+  if (arrival.getTime() <= Date.now()) {
+   form.elements.time.setCustomValidity('这个时间已经过去啦，请选择之后的到店时间');
+   form.elements.time.reportValidity();
+   return;
+  }
   const data = new FormData(form);
   const petType = data.get('petType');
   const selectedService = Number(data.get('service'));
-  setResult('♡ ' + data.get('petName') + ' 的预约预览：' + data.get('date') + ' ' + data.get('time') + '，' + menus[petType].titles[selectedService] + '。本演示未提交预约，请通过门店正式渠道确认时间及费用。');
+  setResult('♡ ' + data.get('petName') + ' 的预约预览：期望到店时间 ' + data.get('date') + ' ' + data.get('time') + '，' + menus[petType].titles[selectedService] + '。本演示未提交预约，请通过门店正式渠道确认时间及费用。');
  }
  return (<>
 
@@ -63,7 +70,7 @@ export default function PetCare() {
 <section className="visit" id="visit"><div><div className="kicker">COME SAY HELLO</div><h2>下一次见面，带它一起来。</h2><p>喜欢干净的毛毛，也喜欢沾着草香的小脚丫。<br />营业时间示例 · 周二至周日 10:00—19:00<br />概念门店 · 地址与联系方式待店主补充</p></div><div className="visit-action"><button className="btn dark" onClick={() => openBooking(0)}>为我家宝贝预约 <span>↗</span></button><small>预约演示 · 无需付款 · 不会发送真实订单</small></div></section>
 </main><footer><span className="footer-brand">✿ 毛茸茸 FURRY CLUB</span><span>把每一份小小的信任，照顾得毛茸茸。</span><span>© <span>{year}</span> 毛茸茸 · 概念店展示页面</span></footer>
 </div>
-<dialog ref={dialogRef} onClick={closeOnBackdrop} onClose={resetBooking} id="booking" aria-labelledby="booking-title"><div className="dialog-top"><h2 id="booking-title">预约一点小美好</h2><button className="close" type="button" onClick={() => dialogRef.current.close()} aria-label="关闭预约">×</button></div><p className="form-note">这是本地预约演示。填写内容仅用于当前页面展示，关闭后不会保存，也不会发送到门店。</p><form ref={formRef} id="booking-form" onSubmit={submitBooking}><label>宝贝的名字<input name="petName" placeholder="例如：奶油" maxLength="24" required autoComplete="off" /></label><label>宝贝类型<select name="petType" value={bookingPet} onChange={event => {setBookingPet(event.target.value); setService("0"); setResult("");}}><option value="dog">狗狗</option><option value="cat">猫咪</option></select></label><label>选择服务<select name="service" value={service} onChange={event => {setService(event.target.value); setResult("");}}>{menus[bookingPet].titles.map((title, index) => <option key={title} value={index}>{title} · ¥{menus[bookingPet].prices[index]} 起</option>)}</select></label><label>期望到店日期<input name="date" type="date" min={today} onInput={event => event.target.setCustomValidity("")} required /></label><label>期望时段<select name="time"><option>10:00—12:00</option><option>12:00—14:00</option><option>14:00—16:00</option><option>16:00—18:00</option></select></label><button className="btn" type="submit">生成预约预览 <span>↗</span></button></form><div id="result" role="status" aria-live="polite">{result}</div></dialog>
+<dialog ref={dialogRef} onClick={closeOnBackdrop} onClose={resetBooking} id="booking" aria-labelledby="booking-title"><div className="dialog-top"><h2 id="booking-title">预约一点小美好</h2><button className="close" type="button" onClick={() => dialogRef.current.close()} aria-label="关闭预约">×</button></div><p className="form-note">这是本地预约演示。填写内容仅用于当前页面展示，关闭后不会保存，也不会发送到门店。</p><form ref={formRef} id="booking-form" onSubmit={submitBooking} onInput={() => {setResult(""); formRef.current?.elements.time.setCustomValidity("");}}><label>宝贝的名字<input name="petName" placeholder="例如：奶油" maxLength="24" required autoComplete="off" /></label><label>宝贝类型<select name="petType" value={bookingPet} onChange={event => {setBookingPet(event.target.value); setService("0"); setResult("");}}><option value="dog">狗狗</option><option value="cat">猫咪</option></select></label><label>选择服务<select name="service" value={service} onChange={event => {setService(event.target.value); setResult("");}}>{menus[bookingPet].titles.map((title, index) => <option key={title} value={index}>{title} · ¥{menus[bookingPet].prices[index]} 起</option>)}</select></label><label>期望到店日期<input name="date" type="date" min={today} onInput={event => event.target.setCustomValidity("")} required /></label><label>期望到店时间<input name="time" type="time" min="10:00" max="19:00" required aria-describedby="arrival-note" /></label><p className="form-note" id="arrival-note">请选择 10:00—19:00 内的到店时间（北京时间），实际安排以门店确认为准。</p><button className="btn" type="submit">生成预约预览 <span>↗</span></button></form><div id="result" role="status" aria-live="polite">{result}</div></dialog>
 
 </>);
 }
