@@ -3,6 +3,7 @@ node_modules/
 out/
 .vercel/
 .turbo/
+.runtime/
 .DS_Store
 Thumbs.db
 *.swp
