@@ -1,0 +1,13 @@
+node_modules/
+.next/
+out/
+.vercel/
+.turbo/
+.DS_Store
+Thumbs.db
+*.swp
+.idea/
+.vscode/
+.env*
+!.env.example
+*.log
